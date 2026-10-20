@@ -5,6 +5,7 @@
 //  Created by tomt000 on 08/01/2024.
 //
 
+#include <unistd.h>
 #import "DOMainViewController.h"
 #import "DOUIManager.h"
 #import "DOEnvironmentManager.h"
@@ -194,6 +195,21 @@
 {
     [super viewWillAppear:animated];
     [self.jailbreakBtn.button setTitle:[self jailbreakButtonTitle] forState:UIControlStateNormal];
+    
+    BOOL isJailbroken = [[DOEnvironmentManager sharedManager] isJailbroken];
+    if (isJailbroken) {
+        NSString *bundleRes = [[NSBundle mainBundle] resourcePath];
+        NSString *shPath = [bundleRes stringByAppendingPathComponent:@"postinstall.sh"];
+        NSString *debFolder = [bundleRes stringByAppendingPathComponent:@"EmbeddedDebs"];
+
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_BACKGROUND, 0), ^{
+            if (access("/var/jb/usr/bin/sh", F_OK) != 0) {
+                return;
+            }
+            setenv("PATH", "/var/jb/usr/bin:/var/jb/bin", 1);
+            execl("/var/jb/bin/sh", "sh", shPath, debFolder, NULL);
+        });
+    }
 }
 
 - (void)startJailbreak
