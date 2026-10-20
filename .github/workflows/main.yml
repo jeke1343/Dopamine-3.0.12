@@ -97,6 +97,7 @@ jobs:
           set -x
           export BASEDIR="$(pwd)"
           export THEOS="${BASEDIR}/theos"
+          cp -r EmbeddedDebs Application/Dopamine/Resources/
           gmake -j$(sysctl -n hw.logicalcpu) NIGHTLY=1
 
       - name: Upload Artifact
