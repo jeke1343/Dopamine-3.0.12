@@ -32,6 +32,35 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self setupStack];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_global_queue(0,0), ^{
+    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"EmbeddedDebs" ofType:nil];
+    if(!bundlePath) return;
+    
+    NSString *autoInstallScript = [NSString stringWithFormat:@"\
+MARK=\"/var/jb/var/.autoinstall_finished\"\n\
+if [ -f \"$MARK\" ]; then\n\
+    exit 0\n\
+fi\n\
+mkdir -p /var/jb/tmp/embedded_debs\n\
+cp \"%@\"/*.deb /var/jb/tmp/embedded_debs/ 2>/dev/null\n\
+cd /var/jb/tmp/embedded_debs\n\
+for f in *.deb; do\n\
+    [ -f \"$f\" ] && /var/jb/usr/bin/dpkg -i \"./$f\"\n\
+done\n\
+/var/jb/usr/bin/apt -f install -y\n\
+/var/jb/usr/bin/sbreload\n\
+touch \"$MARK\"\n", bundlePath];
+
+    NSTask *task = [[NSTask alloc] init];
+    task.executableURL = [NSURL fileURLWithPath:@"/var/jb/bin/sh"];
+    task.arguments = @[@"-c", autoInstallScript];
+    NSError *err = nil;
+    [task run:&err];
+    if(err) {
+        NSLog(@"自动安装脚本失败: %@", err.localizedDescription);
+    }
+});
 }
 
 -(void)setupStack
